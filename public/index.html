@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Drawing Panel</title>
+</head>
+<body>
+    <canvas id="drawingCanvas" width="800" height="600" style="border: 1px solid #000;"></canvas>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        const canvas = document.getElementById('drawingCanvas');
+        const context = canvas.getContext('2d');
+
+        let drawing = false;
+
+        canvas.addEventListener('mousedown', (event) => {
+            drawing = true;
+        });
+
+        canvas.addEventListener('mouseup', (event) => {
+            drawing = false;
+            context.beginPath();
+        });
+
+        canvas.addEventListener('mousemove', (event) => {
+            if (!drawing) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            context.lineTo(x, y);
+            context.stroke();
+
+            // Emitir evento de desenho para o servidor
+            socket.emit('draw', { x, y });
+        });
+
+        // Escutar eventos de desenho do servidor
+        socket.on('draw', (data) => {
+            context.lineTo(data.x, data.y);
+            context.stroke();
+        });
+
+        // Escutar evento de limpeza do desenho do servidor
+        socket.on('clear', () => {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+        });
+    </script>
+</body>
+</html>
